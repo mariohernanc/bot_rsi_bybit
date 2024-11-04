@@ -600,7 +600,7 @@ class trader():
         except Exception as e:
             logging.error(e)
             # print(e)
-            time.sleep(3)
+            time.sleep(5)
 
     def trade_manager(self):
         if self.timeframe == '1m':
@@ -623,7 +623,7 @@ class trader():
                 if localtime[5] in timecheck:
                     self.strategy_check()
 
-            time.sleep(3)
+            time.sleep(5)
         return True
 
 
@@ -663,7 +663,7 @@ def main():
     logging.info('Bot Started... running\n')
     while True:
         localtime = time.localtime(time.time())
-        time.sleep(3)
+        time.sleep(5)
 
 
 main()
