@@ -322,10 +322,12 @@ class trader():
                     if position['symbol'] == self.symbol:
                         if position['side'] == 'long' and position['contracts'] > 0:
                             position_found_long = True
+                            self.last_buy_price = position['entryPrice']
                             self.total_amount_long = float(position['contracts'])
                             
                         elif position['side'] == 'short' and position['contracts'] > 0:
                             position_found_short = True
+                            self.last_sell_price = position['entryPrice']
                             self.total_amount_short = float(position['contracts'])
                             
 
@@ -335,12 +337,16 @@ class trader():
                         self.buycount = 0
                         self.tradecount_long = 0
                         self.total_amount_long = self.amount
+                        self.buy_active = False
+                        self.buy_first_order = True
 
                 if not position_found_short:
                     if self.side == 'sell':
                         self.sellcount = 0
                         self.tradecount_short = 0
                         self.total_amount_short = self.amount
+                        self.sell_active = False
+                        self.sell_first_order = True
             
             # Calcular las cantidades de orden antes de los bloques if/elif
             self.order_amount_long = self.amount * (1 + (self.incre_amt_percent_long * self.buycount))
@@ -410,12 +416,12 @@ class trader():
                     if position['symbol'] == self.symbol:
                         if position['side'] == 'long' and position['contracts'] > 0:
                             self.last_buy_price = position['entryPrice']
-                            self.total_amount_long = position['contracts']
+                            self.total_amount_long = float(position['contracts'])
                             self.position_found_long = True
                             # Mantener el valor original de `buycount` que se cargó desde el archivo pickle
                         elif position['side'] == 'short' and position['contracts'] > 0:
                             self.last_sell_price = position['entryPrice']
-                            self.total_amount_short = position['contracts']
+                            self.total_amount_short = float(position['contracts'])
                             self.position_found_short = True
                             # Mantener el valor original de `sellcount` que se cargó desde el archivo pickle
 
