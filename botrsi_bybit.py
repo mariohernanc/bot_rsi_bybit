@@ -410,7 +410,7 @@ class trader():
 
             # Obtener las posiciones actuales para el símbolo
             res = ex.fetch_positions([self.symbol])
-            print(f"[DEBUG] - Fetch Positions Response: {res}")  # Imprimir el contenido de res en cada loop
+            #print(f"[DEBUG] - Fetch Positions Response: {res}")  # Imprimir el contenido de res en cada loop
             
             # Comprobar si hay posiciones abiertas para actualizar los precios last_buy_price y last_sell_price
             
@@ -460,7 +460,7 @@ class trader():
                 self.next_sell_short = 0
 
             # Debugging Print para self.last_price
-            print(f"[DEBUG] - Last Price (self.last_price): {self.last_price}")
+            #print(f"[DEBUG] - Last Price (self.last_price): {self.last_price}")
 
             # get indicators values
             rsi_tf = self.RSI(ohlc_tf[SOURCE], RSI_PERIOD)
@@ -474,9 +474,9 @@ class trader():
             self.current_low = self.last_price
 
             # Debugging Prints
-            print(f"[DEBUG] - {datetime.datetime.now()} - Symbol: {self.symbol}")
-            print(f"[DEBUG] - Current Price: {self.current_close}")
-            print(f"[DEBUG] - RSI: {self.current_rsi}")
+            #print(f"[DEBUG] - {datetime.datetime.now()} - Symbol: {self.symbol}")
+            #print(f"[DEBUG] - Current Price: {self.current_close}")
+            #print(f"[DEBUG] - RSI: {self.current_rsi}")
 
             if self.last_buy_price > 0 and self.current_high < (self.last_buy_price*(1+(self.tp-self.even))):
                 self.current_high1 = 0
@@ -497,19 +497,19 @@ class trader():
                     self.current_low1 = 0
 
             # Debugging Prints for trailing stop conditions
-            print(f"[DEBUG] - Current High1: {self.current_high1}, Current Low1: {self.current_low1}")
+            #print(f"[DEBUG] - Current High1: {self.current_high1}, Current Low1: {self.current_low1}")
 
             # Debugging Print para precios actuales
-            print(f"[DEBUG] - Current Close: {self.current_close}, Current High: {self.current_high}, Current Low: {self.current_low}")
+            #print(f"[DEBUG] - Current Close: {self.current_close}, Current High: {self.current_high}, Current Low: {self.current_low}")
 
             # Revisar el valor de last_buy_price y last_sell_price
-            print(f"[DEBUG] - Last Buy Price (self.last_buy_price): {self.last_buy_price}")
-            print(f"[DEBUG] - Last Sell Price (self.last_sell_price): {self.last_sell_price}")
+            #print(f"[DEBUG] - Last Buy Price (self.last_buy_price): {self.last_buy_price}")
+            #print(f"[DEBUG] - Last Sell Price (self.last_sell_price): {self.last_sell_price}")
 
             self.current_rsi = round(rsi_tf[-1], 2)
 
-            print(f"[DEBUG] - Buy SL Price: {self.buy_sl_price}, Buy TP Price: {self.buy_tp_price}")
-            print(f"[DEBUG] - Sell SL Price: {self.sell_sl_price}, Sell TP Price: {self.sell_tp_price}")
+            #print(f"[DEBUG] - Buy SL Price: {self.buy_sl_price}, Buy TP Price: {self.buy_tp_price}")
+            #print(f"[DEBUG] - Sell SL Price: {self.sell_sl_price}, Sell TP Price: {self.sell_tp_price}")
 
             # print(f'{Fore.BLUE}current_rsi:', self.current_rsi, 'current_close:', self.current_close, 'self.current_high1:' , self.current_high1, 'self.current_low1:' , self.current_low1)
 
@@ -517,23 +517,23 @@ class trader():
                 self.buy_sl_price = self.current_high1*(1-self.even)  # sl = precio mas alto registrado * 1-distancia retroceso
                 self.buy_tp_price = self.last_buy_price*(1+(self.tp-self.even)) # distancia en long al que se activa el BE en profit
                 #print(f'{Fore.GREEN}Breakeven: ', self.buy_sl_price, ' - Ultimo precio:', self.current_high1)
-                print(f"[DEBUG] - Updated Buy SL Price: {self.buy_sl_price}, Updated Buy TP Price: {self.buy_tp_price}")
+                #print(f"[DEBUG] - Updated Buy SL Price: {self.buy_sl_price}, Updated Buy TP Price: {self.buy_tp_price}")
                 logging.info(f'Breakeven: {self.buy_sl_price}')
 
             elif (self.current_low1 <= self.last_sell_price*(1-self.tp)) and (self.current_close <= self.sell_tp_price) and self.sell_active:
                 self.sell_sl_price = self.current_low1*(1+self.even)  # distancia permitida para cerrar operacion en market despues de activar el BE
                 self.sell_tp_price = self.last_sell_price*(1-(self.tp-self.even))  # distancia en short al que se activa el BE en profit
                 #print(f'{Fore.RED}Breakeven: ', self.sell_sl_price, ' - Ultimo precio:', self.current_low1)
-                print(f"[DEBUG] - Updated Sell SL Price: {self.sell_sl_price}, Updated Sell TP Price: {self.sell_tp_price}")
+                #print(f"[DEBUG] - Updated Sell SL Price: {self.sell_sl_price}, Updated Sell TP Price: {self.sell_tp_price}")
                 logging.info(f'Breakeven: {self.sell_sl_price}')
 
             if (self.current_close <= self.buy_sl_price) and self.buy_active and CLOSE_LONG == True:
-                print(f"[DEBUG] - Closing Long at price: {self.current_close}, Buy SL Price: {self.buy_sl_price}")
+                #print(f"[DEBUG] - Closing Long at price: {self.current_close}, Buy SL Price: {self.buy_sl_price}")
                 self.close_last_trade_long('sell')  # aqui cerrar todo
                 fecha_actual = datetime.datetime.now()
                 fecha_formateada = fecha_actual.strftime("%Y-%m-%d %H:%M:%S")
                 # print(fecha_formateada)
-                print('Close Long Price: ', self.buy_sl_price)
+                #print('Close Long Price: ', self.buy_sl_price)
                 logging.info(f'Orden cierre Long: {self.buy_sl_price}')
                 self.buy_active = False
                 self.buy_first_order = True  # cambio mio
@@ -549,7 +549,7 @@ class trader():
                 self.order_amount_long = 0
                 
             elif (self.current_close >= self.sell_sl_price) and self.sell_active and CLOSE_SHORT == True:
-                print(f"[DEBUG] - Closing Short at price: {self.current_close}, Sell SL Price: {self.sell_sl_price}")
+                #print(f"[DEBUG] - Closing Short at price: {self.current_close}, Sell SL Price: {self.sell_sl_price}")
                 self.close_last_trade_short('buy')  # aqui cerrar todo
                 fecha_actual = datetime.datetime.now()
                 fecha_formateada = fecha_actual.strftime("%Y-%m-%d %H:%M:%S")
