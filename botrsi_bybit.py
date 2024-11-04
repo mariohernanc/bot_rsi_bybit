@@ -423,11 +423,13 @@ class trader():
                         if position['side'] == 'long' and position['contracts'] > 0:
                             self.last_buy_price = position['entryPrice']
                             self.total_amount_long = float(position['contracts'])
+                            self.next_buy_long = (self.last_buy_price * (1 - (self.incre_price_percent_long * self.buycount)))
                             self.position_found_long = True
                             # Mantener el valor original de `buycount` que se cargó desde el archivo pickle
                         elif position['side'] == 'short' and position['contracts'] > 0:
                             self.last_sell_price = position['entryPrice']
                             self.total_amount_short = float(position['contracts'])
+                            self.next_sell_short = (self.last_sell_price * (1 + (self.incre_price_percent_short * self.sellcount)))
                             self.position_found_short = True
                             # Mantener el valor original de `sellcount` que se cargó desde el archivo pickle
 
@@ -441,6 +443,8 @@ class trader():
                 self.buy_first_order = True
                 self.total_amount_long = self.amount
                 self.order_amount_long = 0
+                self.position_found_long = 0
+                self.next_buy_long = 0
 
             if not self.position_found_short:
                 self.last_sell_price = 0
@@ -451,6 +455,7 @@ class trader():
                 self.sell_first_order = True
                 self.total_amount_short = self.amount
                 self.order_amount_short = 0
+                self.next_sell_short = 0
 
             # Debugging Print para self.last_price
             print(f"[DEBUG] - Last Price (self.last_price): {self.last_price}")
@@ -503,10 +508,6 @@ class trader():
 
             print(f"[DEBUG] - Buy SL Price: {self.buy_sl_price}, Buy TP Price: {self.buy_tp_price}")
             print(f"[DEBUG] - Sell SL Price: {self.sell_sl_price}, Sell TP Price: {self.sell_tp_price}")
-
-            # Calcular las cantidades de orden después de la validación
-            self.next_buy_long = (self.last_buy_price * (1 - (self.incre_price_percent_long * self.buycount)))
-            self.next_sell_short = (self.last_sell_price * (1 + (self.incre_price_percent_short * self.sellcount)))
 
             # print(f'{Fore.BLUE}current_rsi:', self.current_rsi, 'current_close:', self.current_close, 'self.current_high1:' , self.current_high1, 'self.current_low1:' , self.current_low1)
 
@@ -600,7 +601,7 @@ class trader():
         except Exception as e:
             logging.error(e)
             # print(e)
-            time.sleep(5)
+            time.sleep(3)
 
     def trade_manager(self):
         if self.timeframe == '1m':
@@ -623,7 +624,7 @@ class trader():
                 if localtime[5] in timecheck:
                     self.strategy_check()
 
-            time.sleep(5)
+            time.sleep(3)
         return True
 
 
@@ -663,7 +664,7 @@ def main():
     logging.info('Bot Started... running\n')
     while True:
         localtime = time.localtime(time.time())
-        time.sleep(5)
+        time.sleep(3)
 
 
 main()
