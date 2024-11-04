@@ -334,6 +334,8 @@ class trader():
                 # Si no se encontró ninguna posición abierta para el símbolo, establecer `buycount` o `sellcount` en 0
                 if not position_found_long:
                     if self.side == 'buy':
+                        self.last_buy_price = 0
+                        self.buy_count = 0
                         self.buycount = 0
                         self.tradecount_long = 0
                         self.total_amount_long = self.amount
@@ -342,6 +344,8 @@ class trader():
 
                 if not position_found_short:
                     if self.side == 'sell':
+                        self.last_sell_price = 0
+                        self.sell_count = 0
                         self.sellcount = 0
                         self.tradecount_short = 0
                         self.total_amount_short = self.amount
@@ -427,12 +431,16 @@ class trader():
 
             # Si no se encontró ninguna posición abierta para el símbolo, establecer `buycount` o `sellcount` en 0
             if not self.position_found_long:
+                self.last_buy_price = 0
+                self.buy_count = 0
                 self.buycount = 0
                 self.tradecount_long = 0
                 self.buy_active = False
                 self.buy_first_order = True
                 self.total_amount_long = self.amount
             if not self.position_found_short:
+                self.last_sell_price = 0
+                self.sell_count = 0
                 self.sellcount = 0
                 self.tradecount_short = 0
                 self.sell_active = False
