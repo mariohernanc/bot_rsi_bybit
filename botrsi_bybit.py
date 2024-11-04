@@ -307,55 +307,7 @@ class trader():
 
     def create_trade(self):
         try:
-            # Verificar las posiciones actuales para el símbolo
-            res = ex.fetch_positions([self.symbol])
-            #print(f"[DEBUG] - Fetch Positions Response: {res}")  # Agregar este print para ver el contenido de res
-            
-            # Inicializar banderas para comprobar si hay posiciones abiertas
-            position_found_long = False
-            position_found_short = False
-
-            # Comprobar si hay posiciones abiertas y ajustar `buycount` o `sellcount`
-            if res:
-                # Iterar sobre las posiciones para comprobar si hay alguna abierta para el símbolo actual
-                for position in res:
-                    if position['symbol'] == self.symbol:
-                        if position['side'] == 'long' and position['contracts'] > 0:
-                            position_found_long = True
-                            self.last_buy_price = position['entryPrice']
-                            self.total_amount_long = float(position['contracts'])
-                            self.next_buy_long = (self.last_buy_price * (1 - (self.incre_price_percent_long * self.buycount)))
-                            
-                        elif position['side'] == 'short' and position['contracts'] > 0:
-                            position_found_short = True
-                            self.last_sell_price = position['entryPrice']
-                            self.total_amount_short = float(position['contracts'])
-                            self.next_sell_short = (self.last_sell_price * (1 + (self.incre_price_percent_short * self.sellcount)))
-                            
-
-                # Si no se encontró ninguna posición abierta para el símbolo, establecer `buycount` o `sellcount` en 0
-                if not position_found_long:
-                    if self.side == 'buy':
-                        self.last_buy_price = 0
-                        self.buy_count = 0
-                        self.buycount = 0
-                        self.tradecount_long = 0
-                        self.total_amount_long = self.amount
-                        self.order_amount_long = 0
-                        self.buy_active = False
-                        self.buy_first_order = True
-
-                if not position_found_short:
-                    if self.side == 'sell':
-                        self.last_sell_price = 0
-                        self.sell_count = 0
-                        self.sellcount = 0
-                        self.tradecount_short = 0
-                        self.total_amount_short = self.amount
-                        self.order_amount_short = 0
-                        self.sell_active = False
-                        self.sell_first_order = True
-            
+           
             # Calcular las cantidades de orden antes de los bloques if/elif
             self.order_amount_long = self.amount * (1 + (self.incre_amt_percent_long * self.buycount))
             self.order_amount_short = self.amount * (1 + (self.incre_amt_percent_short * self.sellcount))
@@ -374,8 +326,6 @@ class trader():
                 print(f'{Fore.RED}Date: {fecha_formateada} -- Short a precio de mercado: {self.current_close} -- Total_Short_Amount: {self.order_amount_short}')
                 logging.info(f'Total contratos vendidos: {self.order_amount_short} -- Orden a precio mercado: {self.current_close}')
 
-            # Agregar una pausa de 2 segundos después de realizar la orden
-            time.sleep(2)
 
             # Solo proceder si hay un resultado válido de la orden creada
             if result:
@@ -391,8 +341,6 @@ class trader():
                     self.sellcount += 1
                     self.sell_count += 1
                     self.sell_active = True
-
-            
 
             # Guardar el estado después de crear la orden
             self.save_state()
@@ -578,12 +526,6 @@ class trader():
                         self.buy_first_order = False
                         self.side = 'buy'
                         self.create_trade()
-                        fecha_actual = datetime.datetime.now()
-                        fecha_formateada = fecha_actual.strftime(
-                            "%Y-%m-%d %H:%M:%S")
-                        # print(fecha_formateada)
-                        # print(f'{Fore.YELLOW}current_rsi:', self.current_rsi)
-                        print(f'{Fore.GREEN}Date:', (fecha_formateada), '-- Long_Position_Price:', self.last_buy_price, '-- Total_Long_Amount:', self.total_amount_long)
                         logging.info(
                             f'Precio_promedio_long: {self.last_buy_price} Total contratos comprados: {self.total_amount_long}')
 
@@ -592,12 +534,6 @@ class trader():
                         self.sell_first_order = False
                         self.side = 'sell'
                         self.create_trade()
-                        fecha_actual = datetime.datetime.now()
-                        fecha_formateada = fecha_actual.strftime(
-                            "%Y-%m-%d %H:%M:%S")
-                        # print(fecha_formateada)
-                        # print(f'{Fore.YELLOW}current_rsi:', self.current_rsi)
-                        print(f'{Fore.RED}Date:', (fecha_formateada), '-- Short_Position_Price:', self.last_sell_price, '-- Total_Short_Amount:', self.total_amount_short)
                         logging.info(
                             f'Precio_compra_short: {self.last_sell_price} Total contratos vendidos: {self.total_amount_short}')
             # Save State
