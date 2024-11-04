@@ -339,6 +339,7 @@ class trader():
                         self.buycount = 0
                         self.tradecount_long = 0
                         self.total_amount_long = self.amount
+                        self.order_amount_long = 0
                         self.buy_active = False
                         self.buy_first_order = True
 
@@ -349,6 +350,7 @@ class trader():
                         self.sellcount = 0
                         self.tradecount_short = 0
                         self.total_amount_short = self.amount
+                        self.order_amount_short = 0
                         self.sell_active = False
                         self.sell_first_order = True
             
@@ -438,6 +440,8 @@ class trader():
                 self.buy_active = False
                 self.buy_first_order = True
                 self.total_amount_long = self.amount
+                self.order_amount_long = 0
+
             if not self.position_found_short:
                 self.last_sell_price = 0
                 self.sell_count = 0
@@ -446,6 +450,7 @@ class trader():
                 self.sell_active = False
                 self.sell_first_order = True
                 self.total_amount_short = self.amount
+                self.order_amount_short = 0
 
             # Debugging Print para self.last_price
             print(f"[DEBUG] - Last Price (self.last_price): {self.last_price}")
