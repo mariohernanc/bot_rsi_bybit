@@ -406,14 +406,25 @@ class trader():
                         if position['side'] == 'long' and position['contracts'] > 0:
                             self.last_buy_price = float(position['entryPrice'])
                             self.total_amount_long = float(position['contracts'])
+                            self.position_founded_long = True
                         elif position['side'] == 'short' and position['contracts'] > 0:
                             self.last_sell_price = float(position['entryPrice'])
                             self.total_amount_short = float(position['contracts'])
-            else:
-                # No hay posiciones abiertas, mantenemos last_buy_price y last_sell_price en 0
+                            self.position_founded_short = True
+            
+            # Si no se encontró ninguna posición abierta, restablecemos las variables correspondientes
+            if not self.position_founded_long:
+                # No hay posiciones largas abiertas
                 self.last_buy_price = 0
-                self.last_sell_price = 0
+                self.buycount = 0
+                self.tradecount_long = 0
                 self.total_amount_long = self.amount
+
+            if not self.position_founded_short:
+                # No hay posiciones cortas abiertas
+                self.last_sell_price = 0
+                self.sell_count = 0
+                self.tradecount_short = 0
                 self.total_amount_short = self.amount
 
             # Debugging Print para self.last_price
