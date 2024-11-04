@@ -409,9 +409,13 @@ class trader():
                 for position in res:
                     if position['symbol'] == self.symbol:
                         if position['side'] == 'long' and position['contracts'] > 0:
+                            self.last_buy_price = position['entryPrice']
+                            self.total_amount_long = position['contracts']
                             self.position_found_long = True
                             # Mantener el valor original de `buycount` que se cargó desde el archivo pickle
                         elif position['side'] == 'short' and position['contracts'] > 0:
+                            self.last_sell_price = position['entryPrice']
+                            self.total_amount_short = position['contracts']
                             self.position_found_short = True
                             # Mantener el valor original de `sellcount` que se cargó desde el archivo pickle
 
