@@ -324,11 +324,13 @@ class trader():
                             position_found_long = True
                             self.last_buy_price = position['entryPrice']
                             self.total_amount_long = float(position['contracts'])
+                            self.next_buy_long = (self.last_buy_price * (1 - (self.incre_price_percent_long * self.buycount)))
                             
                         elif position['side'] == 'short' and position['contracts'] > 0:
                             position_found_short = True
                             self.last_sell_price = position['entryPrice']
                             self.total_amount_short = float(position['contracts'])
+                            self.next_sell_short = (self.last_sell_price * (1 + (self.incre_price_percent_short * self.sellcount)))
                             
 
                 # Si no se encontró ninguna posición abierta para el símbolo, establecer `buycount` o `sellcount` en 0
