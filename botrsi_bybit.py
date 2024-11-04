@@ -318,17 +318,13 @@ class trader():
                 fecha_actual = datetime.datetime.now()
                 fecha_formateada = fecha_actual.strftime("%Y-%m-%d %H:%M:%S")
                 print(f'{Fore.GREEN}\nBuy number: {self.buy_count}\nDate: {fecha_formateada}\nRsi: {self.current_rsi}\nSymbol: {self.symbol}\nSide: {self.side}\nAmount: {self.order_amount_long}\nOrder_orice: {self.current_close}\nBuy_tp_price: {self.buy_tp_price}\n')
-               # print(fecha_formateada)
-                logging.info(
-                    f'Compra Long Numero: {self.buy_count}, Symbol: {self.symbol}, Side: {self.side}, Amount: {self.order_amount_long}, Buy_sl_price: {self.buy_sl_price}, Buy_tp_price: {self.buy_tp_price}')
-
+                logging.info(f'Compra Long Numero: {self.buy_count}, Symbol: {self.symbol}, Side: {self.side}, Amount: {self.order_amount_long}, Buy_sl_price: {self.buy_sl_price}, Buy_tp_price: {self.buy_tp_price}')
 
             elif self.side == 'sell':
                 fecha_actual = datetime.datetime.now()
                 fecha_formateada = fecha_actual.strftime("%Y-%m-%d %H:%M:%S")
                 result = ex.create_order(self.symbol, 'market', self.side, self.order_amount_short, params={"reduceOnly": False, "positionIdx": 2})
                 print(f'{Fore.RED}\nSell number: {self.sell_count}\nDate: {fecha_formateada}\nRsi: {self.current_rsi}\nSymbol: {self.symbol}\nSide: {self.side}\nAmount: {self.order_amount_short}\nOrder_orice: {self.current_close}\nSell_tp_price: {self.sell_tp_price}\n')
-                # print(fecha_formateada)
                 logging.info(f'Compra Short Numero: {self.sell_count}, Symbol: {self.symbol}, Side: {self.side}, Amount: {self.amount}, Sell_sl_price: {self.sell_sl_price}, Sell_tp_price: {self.sell_tp_price}')
 
             # Solo proceder si hay un resultado válido de la orden creada
