@@ -374,6 +374,8 @@ class trader():
                 print(f'{Fore.RED}Date: {fecha_formateada} -- Short a precio de mercado: {self.current_close} -- Total_Short_Amount: {self.order_amount_short}')
                 logging.info(f'Total contratos vendidos: {self.order_amount_short} -- Orden a precio mercado: {self.current_close}')
 
+            # Agregar una pausa de 2 segundos después de realizar la orden
+            time.sleep(2)
 
             # Solo proceder si hay un resultado válido de la orden creada
             if result:
