@@ -13,25 +13,32 @@ import os
 logging.basicConfig(filename='bot_logs.log', level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
-### VERSION V12_20241103
-# MODIFICACIONES: TRAILING STOP OPTIMIZADO
-#                 PRIMERA ORDEN POR COSTO EN DOLARES
-#                 AMOUNT REDONDEADO SI SYMBOL ES MENOR A COSTO
-#                 VARIABLE NEXT LONG-SHORT
-#                 AJUSTE GUARDADO ARCHIVO PICKLE
-#                 CORRECCION PRINT APERTURA ORDENES
-#                 CORRECCION CALCULO HIGH-LOW SOLO PARA POSICIONES ABIERTAS - 2
-#                 AGREGA VALIDACIONES PARA ACTIVAR SHORT Y/O LONG
-#                 CORRECCION CALCULO HIGH-LOW SOLO PARA POSICIONES ABIERTAS - 3
-#                 AGREGA PARAMETRO DE INCREMENTO DE ORDENES PARA LONG Y SHORT SEPARADOS
-#                 CONTROL DESDE CONFIG PARA ACTIVAR CIERRE DE ORDENES EN LONG Y SHORT
+# Método para configurar el modo hedge y el apalancamiento
+def configure_account_for_trading(ex, symbol):
+    try:
+        # Activar el modo hedge para el símbolo
+        ex.set_position_mode(True, symbol)  # True indica activar el modo hedge
+        print(f"Modo hedge activado para {symbol}")
 
+        # Establecer el mayor apalancamiento posible para el símbolo
+        market = ex.market(symbol)
+        max_leverage = market['limits']['leverage']['max'] if 'limits' in market and 'leverage' in market['limits'] else 50  # Valor por defecto si no se encuentra el apalancamiento máximo
+        ex.set_leverage(max_leverage, symbol)
+        print(f"Apalancamiento configurado a {max_leverage}x para {symbol}")
+
+    except ccxt.BaseError as error:
+        print(f"Error al configurar la cuenta para el símbolo {symbol}: {error}")
 
 class trader():
-    def __init__(self, symbol, cost, sl, tp, even, tradecount_limit, incre_price_percent_long, incre_price_percent_short, incre_amt_percent_long, incre_amt_percent_short, timeframe):
+    def __init__(self, ex, symbol, cost, sl, tp, even, tradecount_limit, incre_price_percent_long, incre_price_percent_short, incre_amt_percent_long, incre_amt_percent_short, timeframe):
+        # Guardar la referencia al exchange
+        self.ex = ex
         # Inicializar con valores predeterminados
         self.initialize_default_state(symbol, cost, sl, tp, even, tradecount_limit, incre_price_percent_long, incre_price_percent_short, incre_amt_percent_long, incre_amt_percent_short, timeframe)
-        
+
+        # Configurar la cuenta para el símbolo
+        configure_account_for_trading(self.ex, self.symbol)
+      
         # Verificar si el archivo 'trader_state.pickle' existe
         if os.path.exists('trader_state.pickle'):
             try:
@@ -590,7 +597,7 @@ def main():
     logging.info('Creating Trades...')
     for i in range(len(SYMBOLS)):
         print(f'--trade {i}: {SYMBOLS[i]}')
-        bottrader[SYMBOLS[i]] = trader(SYMBOLS[i], COST[i], STOPLOSS_PERCENT[i], TAKEPROFIT_PERCENT[i], BREAKEVEN_CLOSE[i],
+        bottrader[SYMBOLS[i]] = trader(ex, SYMBOLS[i], COST[i], STOPLOSS_PERCENT[i], TAKEPROFIT_PERCENT[i], BREAKEVEN_CLOSE[i],
                                        TRADE_COUNT_LIMIT[i], INCREMENTAL_PRICE_PERCENT_LONG[i], INCREMENTAL_PRICE_PERCENT_SHORT[i], INCREMENTAL_AMT_PERCENT_LONG[i], INCREMENTAL_AMT_PERCENT_SHORT[i], TIMEFRAME)
 
         # ================================================
