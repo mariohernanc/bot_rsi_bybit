@@ -17,8 +17,15 @@ logging.basicConfig(filename='bot_logs.log', level=logging.INFO,
 def configure_account_for_trading(ex, symbol):
     try:
         # Activar el modo hedge para el símbolo
-        ex.set_position_mode(True, symbol)  # True indica activar el modo hedge
-        print(f"Modo hedge activado para {symbol}")
+        try:
+            ex.set_position_mode(True, symbol)  # True indica activar el modo hedge
+            print(f"Modo hedge activado para {symbol}")
+        except ccxt.BaseError as error:
+            # Manejar el error si ya está configurado en modo hedge
+            if 'Position mode is not modified' in str(error):
+                print(f"El modo hedge ya está activado para {symbol}")
+            else:
+                raise error
 
         # Establecer el mayor apalancamiento posible para el símbolo
         market = ex.market(symbol)
