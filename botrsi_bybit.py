@@ -5,7 +5,7 @@ import datetime
 import time
 import threading
 from pprint import pprint
-from BotRSI_config import *
+from config import *
 from colorama import Fore, Style
 import pickle
 import logging
