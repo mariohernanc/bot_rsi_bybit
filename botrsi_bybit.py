@@ -5,13 +5,26 @@ import datetime
 import time
 import threading
 from pprint import pprint
-from config import *
+from BotRSI_config import *
 from colorama import Fore, Style
 import pickle
 import logging
 import os
 logging.basicConfig(filename='bot_logs.log', level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
+
+### VERSION V12_20240924
+# MODIFICACIONES: TRAILING STOP OPTIMIZADO
+#                 PRIMERA ORDEN POR COSTO EN DOLARES
+#                 AMOUNT REDONDEADO SI SYMBOL ES MENOR A COSTO
+#                 VARIABLE NEXT LONG-SHORT
+#                 AJUSTE GUARDADO ARCHIVO PICKLE
+#                 CORRECCION PRINT APERTURA ORDENES
+#                 CORRECCION CALCULO HIGH-LOW SOLO PARA POSICIONES ABIERTAS - 2
+#                 AGREGA VALIDACIONES PARA ACTIVAR SHORT Y/O LONG
+#                 CORRECCION CALCULO HIGH-LOW SOLO PARA POSICIONES ABIERTAS - 3
+#                 AGREGA PARAMETRO DE INCREMENTO DE ORDENES PARA LONG Y SHORT SEPARADOS
+#                 CONTROL DESDE CONFIG PARA ACTIVAR CIERRE DE ORDENES EN LONG Y SHORT
 
 # Método para configurar el modo hedge y el apalancamiento
 def configure_account_for_trading(ex, symbol):
@@ -163,8 +176,8 @@ class trader():
             'Buy_tp_price': self.buy_tp_price,
             'Sell_sl_price': self.sell_sl_price,
             'Sell_tp_price': self.sell_tp_price,
-            #'Buy_price_long': self.last_buy_price,
-            #'Sell_price_short': self.last_sell_price,
+            'Buy_price_long': self.last_buy_price,
+            'Sell_price_short': self.last_sell_price,
             'Last_trade_side': self.last_trade_side,
             'Buy_count': self.buycount,
             'Sell_count': self.sellcount,
@@ -320,45 +333,71 @@ class trader():
                 f'!!! [STOP-LOSS] CANNOT Close Trade for {self.symbol} == [{side}] ... Please Check Account\n')
 
     def create_trade(self):
-        try:
-           
-            # Calcular las cantidades de orden antes de los bloques if/elif
-            self.order_amount_long = self.amount * (1 + (self.incre_amt_percent_long * self.buycount))
-            self.order_amount_short = self.amount * (1 + (self.incre_amt_percent_short * self.sellcount))
+        # Calcular las cantidades de orden antes de los bloques if/elif
+        self.order_amount_long = self.amount * (1 + (self.incre_amt_percent_long * self.buycount))
+        self.order_amount_short = self.amount * (1 + (self.incre_amt_percent_short * self.sellcount))
                 # create market-order
+        try:
+            if self.side == 'buy':
+                result = ex.create_order(
+                    self.symbol, 'market', self.side, self.order_amount_long, params={"reduceOnly": False, "positionIdx": 1})
+            elif self.side == 'sell':
+                result = ex.create_order(
+                    self.symbol, 'market', self.side, self.order_amount_short, params={"reduceOnly": False, "positionIdx": 2})
+
+            res = ex.fetch_positions([self.symbol])
+            if self.side == 'buy' and res[-1]['side'] == 'long':
+                result = res[-1]
+            elif self.side == 'buy' and res[-2]['side'] == 'long':
+                result = res[-2]
+            elif self.side == 'sell' and res[-1]['side'] == 'short':
+                result = res[-1]
+            elif self.side == 'sell' and res[-2]['side'] == 'short':
+                result = res[-2]
+            else:
+                print('!!! major error = check entry mode....')
 
             if self.side == 'buy':
-                result = ex.create_order(self.symbol, 'market', self.side, self.order_amount_long, params={"reduceOnly": False, "positionIdx": 1})
+                self.tradecount_long += 1
+            elif self.side == 'sell':
+                self.tradecount_short += 1
+            if self.side == 'buy':
+                self.total_amount_long = float(result['contracts'])
+            elif self.side == 'sell':
+                self.total_amount_short = float(result['contracts'])
+
+            if self.side == 'buy':
+                self.buy_sl_price = float(result['entryPrice']) * (1-self.sl)
+                self.buy_tp_price = float(result['entryPrice']) * (1+self.tp)
+                self.buycount += 1
+                self.buy_count += 1
+                self.last_buy_price = float(result['entryPrice'])
+                self.buy_active = True
                 fecha_actual = datetime.datetime.now()
                 fecha_formateada = fecha_actual.strftime("%Y-%m-%d %H:%M:%S")
-                print(f'{Fore.GREEN}\nBuy number: {self.buy_count}\nDate: {fecha_formateada}\nRsi: {self.current_rsi}\nSymbol: {self.symbol}\nSide: {self.side}\nAmount: {self.order_amount_long}\nOrder_orice: {self.current_close}\nBuy_tp_price: {self.buy_tp_price}\n')
-                logging.info(f'Compra Long Numero: {self.buy_count}, Symbol: {self.symbol}, Side: {self.side}, Amount: {self.order_amount_long}, Buy_sl_price: {self.buy_sl_price}, Buy_tp_price: {self.buy_tp_price}')
+                # print(f'{Fore.BLUE}current_rsi:', self.current_rsi)
+                print(f'{Fore.GREEN}\nBuy number: {self.buy_count}\nDate: {fecha_formateada}\nRsi: {self.current_rsi}\nSymbol: {self.symbol}\nSide: {self.side}\nAmount: {self.order_amount_long}\nBuy_sl_price: {self.buy_sl_price}\nBuy_tp_price: {self.buy_tp_price}\n')
+               # print(fecha_formateada)
+                logging.info(
+                    f'Compra Long Numero: {self.buy_count}, Symbol: {self.symbol}, Side: {self.side}, Amount: {self.amount}, Buy_sl_price: {self.buy_sl_price}, Buy_tp_price: {self.buy_tp_price}')
 
             elif self.side == 'sell':
+                self.sell_sl_price = float(result['entryPrice']) * (1+self.sl)
+                self.sell_tp_price = float(result['entryPrice']) * (1-self.tp)
+                self.sellcount += 1
+                self.sell_count += 1
+                self.last_sell_price = float(result['entryPrice'])
+                self.sell_active = True
                 fecha_actual = datetime.datetime.now()
                 fecha_formateada = fecha_actual.strftime("%Y-%m-%d %H:%M:%S")
-                result = ex.create_order(self.symbol, 'market', self.side, self.order_amount_short, params={"reduceOnly": False, "positionIdx": 2})
-                print(f'{Fore.RED}\nSell number: {self.sell_count}\nDate: {fecha_formateada}\nRsi: {self.current_rsi}\nSymbol: {self.symbol}\nSide: {self.side}\nAmount: {self.order_amount_short}\nOrder_orice: {self.current_close}\nSell_tp_price: {self.sell_tp_price}\n')
-                logging.info(f'Compra Short Numero: {self.sell_count}, Symbol: {self.symbol}, Side: {self.side}, Amount: {self.amount}, Sell_sl_price: {self.sell_sl_price}, Sell_tp_price: {self.sell_tp_price}')
-
-            # Solo proceder si hay un resultado válido de la orden creada
-            if result:
-                # Actualizar los contadores y precios según el resultado de la orden
-                if self.side == 'buy':
-                    self.tradecount_long += 1
-                    self.buycount += 1
-                    self.buy_count += 1
-                    self.buy_active = True
-                    
-                elif self.side == 'sell':
-                    self.tradecount_short += 1
-                    self.sellcount += 1
-                    self.sell_count += 1
-                    self.sell_active = True
-
-            # Guardar el estado después de crear la orden
+                # print(f'{Fore.BLUE}current_rsi:', self.current_rsi)
+                print(f'{Fore.RED}\nSell number: {self.sell_count}\nDate: {fecha_formateada}\nRsi: {self.current_rsi}\nSymbol: {self.symbol}\nSide: {self.side}\nAmount: {self.order_amount_short}\nSell_sl_price: {self.sell_sl_price}\nSell_tp_price: {self.sell_tp_price}\n')
+                # print(fecha_formateada)
+                logging.info(
+                    f'Compra Short Numero: {self.sell_count}, Symbol: {self.symbol}, Side: {self.side}, Amount: {self.amount}, Sell_sl_price: {self.sell_sl_price}, Sell_tp_price: {self.sell_tp_price}')
+            # Save State
             self.save_state()
-          
+
         except Exception as e:
             print(e)
             logging.error(e)
@@ -372,60 +411,6 @@ class trader():
             ohlc_tf = self.get_market_data(
                 ex, self.symbol, self.timeframe)  # self.timeframe
 
-            # Obtener las posiciones actuales para el símbolo
-            res = ex.fetch_positions([self.symbol])
-            #print(f"[DEBUG] - Fetch Positions Response: {res}")  # Imprimir el contenido de res en cada loop
-            
-            # Comprobar si hay posiciones abiertas para actualizar los precios last_buy_price y last_sell_price
-            
-           # Inicializar banderas para comprobar si hay posiciones abiertas
-            self.position_found_long = False
-            self.position_found_short = False
-
-            # Comprobar si hay posiciones abiertas y ajustar `buycount` o `sellcount`
-            if res:
-                for position in res:
-                    if position['symbol'] == self.symbol:
-                        if position['side'] == 'long' and position['contracts'] > 0:
-                            self.last_buy_price = position['entryPrice']
-                            self.total_amount_long = float(position['contracts'])
-                            self.next_buy_long = (self.last_buy_price * (1 - (self.incre_price_percent_long * self.buycount)))
-                            self.position_found_long = True
-                            # Mantener el valor original de `buycount` que se cargó desde el archivo pickle
-                        elif position['side'] == 'short' and position['contracts'] > 0:
-                            self.last_sell_price = position['entryPrice']
-                            self.total_amount_short = float(position['contracts'])
-                            self.next_sell_short = (self.last_sell_price * (1 + (self.incre_price_percent_short * self.sellcount)))
-                            self.position_found_short = True
-                            # Mantener el valor original de `sellcount` que se cargó desde el archivo pickle
-
-            # Si no se encontró ninguna posición abierta para el símbolo, establecer `buycount` o `sellcount` en 0
-            if not self.position_found_long:
-                self.last_buy_price = 0
-                self.buy_count = 0
-                self.buycount = 0
-                self.tradecount_long = 0
-                self.buy_active = False
-                self.buy_first_order = True
-                self.total_amount_long = self.amount
-                self.order_amount_long = 0
-                self.position_found_long = 0
-                self.next_buy_long = 0
-
-            if not self.position_found_short:
-                self.last_sell_price = 0
-                self.sell_count = 0
-                self.sellcount = 0
-                self.tradecount_short = 0
-                self.sell_active = False
-                self.sell_first_order = True
-                self.total_amount_short = self.amount
-                self.order_amount_short = 0
-                self.next_sell_short = 0
-
-            # Debugging Print para self.last_price
-            #print(f"[DEBUG] - Last Price (self.last_price): {self.last_price}")
-
             # get indicators values
             rsi_tf = self.RSI(ohlc_tf[SOURCE], RSI_PERIOD)
 
@@ -436,11 +421,6 @@ class trader():
             self.current_close = self.last_price
             self.current_high = self.last_price
             self.current_low = self.last_price
-
-            # Debugging Prints
-            #print(f"[DEBUG] - {datetime.datetime.now()} - Symbol: {self.symbol}")
-            #print(f"[DEBUG] - Current Price: {self.current_close}")
-            #print(f"[DEBUG] - RSI: {self.current_rsi}")
 
             if self.last_buy_price > 0 and self.current_high < (self.last_buy_price*(1+(self.tp-self.even))):
                 self.current_high1 = 0
@@ -459,21 +439,10 @@ class trader():
             else:
                 if self.current_low1 == 0:
                     self.current_low1 = 0
-
-            # Debugging Prints for trailing stop conditions
-            #print(f"[DEBUG] - Current High1: {self.current_high1}, Current Low1: {self.current_low1}")
-
-            # Debugging Print para precios actuales
-            #print(f"[DEBUG] - Current Close: {self.current_close}, Current High: {self.current_high}, Current Low: {self.current_low}")
-
-            # Revisar el valor de last_buy_price y last_sell_price
-            #print(f"[DEBUG] - Last Buy Price (self.last_buy_price): {self.last_buy_price}")
-            #print(f"[DEBUG] - Last Sell Price (self.last_sell_price): {self.last_sell_price}")
-
             self.current_rsi = round(rsi_tf[-1], 2)
 
-            #print(f"[DEBUG] - Buy SL Price: {self.buy_sl_price}, Buy TP Price: {self.buy_tp_price}")
-            #print(f"[DEBUG] - Sell SL Price: {self.sell_sl_price}, Sell TP Price: {self.sell_tp_price}")
+            self.next_buy_long = (self.last_buy_price*(1-(self.incre_price_percent_long*self.buycount)))
+            self.next_sell_short = (self.last_sell_price*(1+(self.incre_price_percent_short*self.sellcount)))
 
             # print(f'{Fore.BLUE}current_rsi:', self.current_rsi, 'current_close:', self.current_close, 'self.current_high1:' , self.current_high1, 'self.current_low1:' , self.current_low1)
 
@@ -481,23 +450,20 @@ class trader():
                 self.buy_sl_price = self.current_high1*(1-self.even)  # sl = precio mas alto registrado * 1-distancia retroceso
                 self.buy_tp_price = self.last_buy_price*(1+(self.tp-self.even)) # distancia en long al que se activa el BE en profit
                 #print(f'{Fore.GREEN}Breakeven: ', self.buy_sl_price, ' - Ultimo precio:', self.current_high1)
-                #print(f"[DEBUG] - Updated Buy SL Price: {self.buy_sl_price}, Updated Buy TP Price: {self.buy_tp_price}")
                 logging.info(f'Breakeven: {self.buy_sl_price}')
 
             elif (self.current_low1 <= self.last_sell_price*(1-self.tp)) and (self.current_close <= self.sell_tp_price) and self.sell_active:
                 self.sell_sl_price = self.current_low1*(1+self.even)  # distancia permitida para cerrar operacion en market despues de activar el BE
                 self.sell_tp_price = self.last_sell_price*(1-(self.tp-self.even))  # distancia en short al que se activa el BE en profit
                 #print(f'{Fore.RED}Breakeven: ', self.sell_sl_price, ' - Ultimo precio:', self.current_low1)
-                #print(f"[DEBUG] - Updated Sell SL Price: {self.sell_sl_price}, Updated Sell TP Price: {self.sell_tp_price}")
                 logging.info(f'Breakeven: {self.sell_sl_price}')
 
             if (self.current_close <= self.buy_sl_price) and self.buy_active and CLOSE_LONG == True:
-                #print(f"[DEBUG] - Closing Long at price: {self.current_close}, Buy SL Price: {self.buy_sl_price}")
                 self.close_last_trade_long('sell')  # aqui cerrar todo
                 fecha_actual = datetime.datetime.now()
                 fecha_formateada = fecha_actual.strftime("%Y-%m-%d %H:%M:%S")
                 # print(fecha_formateada)
-                #print('Close Long Price: ', self.buy_sl_price)
+                print('Close Long Price: ', self.buy_sl_price)
                 logging.info(f'Orden cierre Long: {self.buy_sl_price}')
                 self.buy_active = False
                 self.buy_first_order = True  # cambio mio
@@ -513,7 +479,6 @@ class trader():
                 self.order_amount_long = 0
                 
             elif (self.current_close >= self.sell_sl_price) and self.sell_active and CLOSE_SHORT == True:
-                #print(f"[DEBUG] - Closing Short at price: {self.current_close}, Sell SL Price: {self.sell_sl_price}")
                 self.close_last_trade_short('buy')  # aqui cerrar todo
                 fecha_actual = datetime.datetime.now()
                 fecha_formateada = fecha_actual.strftime("%Y-%m-%d %H:%M:%S")
@@ -540,6 +505,12 @@ class trader():
                         self.buy_first_order = False
                         self.side = 'buy'
                         self.create_trade()
+                        fecha_actual = datetime.datetime.now()
+                        fecha_formateada = fecha_actual.strftime(
+                            "%Y-%m-%d %H:%M:%S")
+                        # print(fecha_formateada)
+                        # print(f'{Fore.YELLOW}current_rsi:', self.current_rsi)
+                        print(f'{Fore.GREEN}Date:', (fecha_formateada), '-- Long_Position_Price:', self.last_buy_price, '-- Total_Long_Amount:', self.total_amount_long)
                         logging.info(
                             f'Precio_promedio_long: {self.last_buy_price} Total contratos comprados: {self.total_amount_long}')
 
@@ -548,6 +519,12 @@ class trader():
                         self.sell_first_order = False
                         self.side = 'sell'
                         self.create_trade()
+                        fecha_actual = datetime.datetime.now()
+                        fecha_formateada = fecha_actual.strftime(
+                            "%Y-%m-%d %H:%M:%S")
+                        # print(fecha_formateada)
+                        # print(f'{Fore.YELLOW}current_rsi:', self.current_rsi)
+                        print(f'{Fore.RED}Date:', (fecha_formateada), '-- Short_Position_Price:', self.last_sell_price, '-- Total_Short_Amount:', self.total_amount_short)
                         logging.info(
                             f'Precio_compra_short: {self.last_sell_price} Total contratos vendidos: {self.total_amount_short}')
             # Save State
